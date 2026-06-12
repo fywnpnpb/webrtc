@@ -376,6 +376,65 @@
     }
   }
 
+  async function setupRemoteAudioElement() {
+    if (!ui.remoteAudio) return;
+
+    ui.remoteAudio.autoplay = true;
+    ui.remoteAudio.playsInline = true;
+    ui.remoteAudio.setAttribute("webkit-playsinline", "");
+    ui.remoteAudio.muted = false;
+    ui.remoteAudio.volume = 1;
+    ui.remoteAudio.preload = "auto";
+
+    ui.remoteAudio.onplay = () => {
+      log("remoteAudio playback started.");
+    };
+
+    ui.remoteAudio.onpause = () => {
+      log("remoteAudio playback paused.");
+    };
+
+    ui.remoteAudio.onended = () => {
+      log("remoteAudio playback ended.");
+    };
+
+    ui.remoteAudio.onerror = (event) => {
+      log(`remoteAudio error: ${event?.message || "unknown"}`);
+    };
+  }
+
+  function parseAudioCodecsFromSdp(sdp) {
+    if (!sdp || typeof sdp !== "string") return [];
+
+    const lines = sdp.split(/\r?\n/);
+    const audioLine = lines.find((line) => line.startsWith("m=audio"));
+    if (!audioLine) return [];
+
+    const payloadTypes = audioLine.split(" ").slice(3);
+    const codecMap = payloadTypes.map((pt) => {
+      const rtpmap = lines.find((line) => line.startsWith(`a=rtpmap:${pt} `));
+      if (!rtpmap) return `${pt}:unknown`;
+      return `${pt}:${rtpmap.slice(9)}`;
+    });
+    return codecMap;
+  }
+
+  function logPeerConnectionSdp(peerConnection, label) {
+    if (!peerConnection) return;
+
+    const localDesc = peerConnection.localDescription;
+    const remoteDesc = peerConnection.remoteDescription;
+
+    log(`${label} PeerConnection signalState=${peerConnection.signalingState}, local=${localDesc?.type || "none"}, remote=${remoteDesc?.type || "none"}`);
+
+    if (localDesc?.sdp) {
+      log(`${label} local audio codecs: ${parseAudioCodecsFromSdp(localDesc.sdp).join(", ") || "none"}`);
+    }
+    if (remoteDesc?.sdp) {
+      log(`${label} remote audio codecs: ${parseAudioCodecsFromSdp(remoteDesc.sdp).join(", ") || "none"}`);
+    }
+  }
+
   async function playRemoteAudio() {
     if (!ui.remoteAudio.srcObject) return;
 
@@ -395,16 +454,26 @@
   function attachRemoteAudioTrack(track, stream, source) {
     if (!track || track.kind !== "audio") return false;
 
-    const remoteStream = stream || new MediaStream([track]);
+    const remoteStream = stream || new MediaStream();
+    if (!remoteStream.getAudioTracks().includes(track)) {
+      remoteStream.addTrack(track);
+    }
+
     ui.remoteAudio.srcObject = remoteStream;
-    ui.remoteAudio.setAttribute("autoplay", "");
-    ui.remoteAudio.setAttribute("playsinline", "");
+    ui.remoteAudio.autoplay = true;
+    ui.remoteAudio.playsInline = true;
+    ui.remoteAudio.setAttribute("webkit-playsinline", "");
     ui.remoteAudio.muted = false;
     ui.remoteAudio.volume = 1;
 
     track.enabled = true;
     track.onunmute = () => {
       log(`リモート音声トラックが有効になりました: ${source}`);
+      playRemoteAudio();
+    };
+
+    ui.remoteAudio.onloadedmetadata = () => {
+      log(`remoteAudio onloadedmetadata fired: ${source}`);
       playRemoteAudio();
     };
 
@@ -499,6 +568,10 @@
       throw new Error("WebSocket URL、SIP URI、パスワードは必須です。");
     }
 
+    if (/^wss?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(wsUrl)) {
+      throw new Error("iPhone実機では localhost / 127.0.0.1 のWebSocket URLは使えません。MacまたはSIPサーバーのLAN IPを指定してください。");
+    }
+
     const socket = new JsSIP.WebSocketInterface(wsUrl);
     const config = {
       sockets: [socket],
@@ -556,6 +629,11 @@
 
       peerConnection.addEventListener("track", (trackEvent) => {
         if (trackEvent.track && trackEvent.track.kind !== "audio") return;
+
+        const receiver = trackEvent.receiver;
+        const parameters = receiver?.getParameters ? receiver.getParameters() : null;
+        log(`track event received: kind=${trackEvent.track.kind}, id=${trackEvent.track.id}, readyState=${trackEvent.track.readyState}, muted=${trackEvent.track.muted}, params=${parameters ? JSON.stringify(parameters) : "none"}`);
+
         attachRemoteAudioTrack(trackEvent.track, trackEvent.streams?.[0], "track-event");
       });
 
@@ -563,14 +641,33 @@
         log(`ICE state: ${peerConnection.iceConnectionState}`);
       });
 
+      peerConnection.addEventListener("icegatheringstatechange", () => {
+        log(`ICE gathering state: ${peerConnection.iceGatheringState}`);
+      });
+
+      peerConnection.addEventListener("signalingstatechange", () => {
+        log(`Signaling state: ${peerConnection.signalingState}`);
+        logPeerConnectionSdp(peerConnection, "signaling");
+      });
+
       peerConnection.addEventListener("connectionstatechange", () => {
         log(`PeerConnection state: ${peerConnection.connectionState}`);
       });
+
+      logPeerConnectionSdp(peerConnection, "init");
     });
   }
 
   function bindSessionEvents(session, originator) {
     bindPeerConnection(session);
+
+    session.on("connecting", () => {
+      log(`通話セッション接続中: originator=${originator}`);
+    });
+
+    session.on("sending", () => {
+      log(`INVITEを送信中: originator=${originator}, target=${session.remote_identity?.uri?.toString() || "不明"}`);
+    });
 
     session.on("progress", () => {
       setCallState(originator === "remote" ? "INCOMING" : "OUTGOING");
@@ -584,6 +681,7 @@
       updateRemoteParty();
       startCallTimer();
       setCallState("INCALL");
+      logPeerConnectionSdp(session.connection, "accepted");
       attachRemoteAudioFromPeerConnection(session.connection, "accepted");
       playRemoteAudio();
       log("通話が受け付けられました。");
@@ -595,6 +693,7 @@
       updateRemoteParty();
       startCallTimer();
       setCallState("INCALL");
+      logPeerConnectionSdp(session.connection, "confirmed");
       attachRemoteAudioFromPeerConnection(session.connection, "confirmed");
       playRemoteAudio();
       log("通話が確立しました。");
@@ -619,16 +718,38 @@
 
     session.on("failed", (event) => {
       handlePotentialMediaError(event);
-      log(`通話失敗: cause=${event.cause || "不明"}, originator=${event.originator || "不明"}`);
+      const response = event.message || event.response;
+      const statusCode = response?.status_code || response?.statusCode || "";
+      const reasonPhrase = response?.reason_phrase || response?.reasonPhrase || "";
+      const method = response?.method || "";
+      const extra = [
+        statusCode ? `status=${statusCode}` : "",
+        reasonPhrase ? `reason=${reasonPhrase}` : "",
+        method ? `method=${method}` : "",
+      ].filter(Boolean).join(", ");
+      log(`通話失敗: cause=${event.cause || "不明"}, originator=${event.originator || "不明"}${extra ? `, ${extra}` : ""}`);
       addCallHistory(originator === "remote" ? "呼入" : "呼出", session.remote_identity?.uri?.toString() || "不明", "失敗");
       resetCallState(`failed: ${event.cause || "不明"}`);
     });
   }
 
   function setupUaEvents() {
-    ua.on("connecting", () => log("WebSocketに接続中です。"));
-    ua.on("connected", () => log("WebSocketに接続しました。"));
-    ua.on("disconnected", () => log("WebSocketが切断されました。"));
+    ua.on("connecting", () => log(`WebSocketに接続中です: ${ui.wsUrl.value.trim()}`));
+    ua.on("connected", () => {
+      clearUserError();
+      log(`WebSocketに接続しました: ${ui.wsUrl.value.trim()}`);
+    });
+    ua.on("disconnected", (event) => {
+      setRegistrationState("FAILED");
+      const message = [
+        "WebSocketが切断されました。",
+        `URL=${ui.wsUrl.value.trim()}`,
+        event?.error ? `error=${event.error}` : "",
+        event?.code ? `code=${event.code}` : "",
+        event?.reason ? `reason=${event.reason}` : "",
+      ].filter(Boolean).join(" ");
+      showUserError(message);
+    });
     ua.on("registrationExpiring", () => {
       log("SIP登録の期限が近いため再登録します。");
       try {
@@ -654,7 +775,7 @@
     ua.on("registrationFailed", (event) => {
       setRegistrationState("FAILED");
       showView("view-login");
-      log(`SIP登録に失敗しました: ${event.cause || "不明"}`);
+      showUserError(`SIP登録に失敗しました: cause=${event.cause || "不明"}, URL=${ui.wsUrl.value.trim()}`);
     });
 
     ua.on("newRTCSession", (event) => {
@@ -740,6 +861,7 @@
       ua = new JsSIP.UA(buildUaConfig());
       setupUaEvents();
       setRegistrationState("REGISTERING");
+      log(`SIP登録を開始します: uri=${ui.sipUri.value.trim()}, ws=${ui.wsUrl.value.trim()}`);
       ua.start();
     } catch (error) {
       destroyUa();
@@ -769,6 +891,7 @@
       }
 
       const target = normalizeTargetUri(ui.targetUri.value);
+      log(`発信準備: target=${target}`);
       ua.call(target, CALL_OPTIONS);
       addCallHistory("発信", target);
       log(`発信しました: ${target}`);
@@ -838,11 +961,15 @@
   }
 
   function hangup() {
-    if (!activeSession) return;
+    if (!activeSession) {
+      log("切断要求を無視しました: activeSessionがありません。");
+      return;
+    }
 
     const session = activeSession;
 
     try {
+      log(`切断を要求します: callState=${callState}, remote=${session.remote_identity?.uri?.toString() || "不明"}`);
       session.terminate();
       if (ua && typeof ua.terminateSessions === "function") {
         ua.terminateSessions();
@@ -1040,11 +1167,19 @@
     renderCallHistory();
     bindUiEventsOnce();
     exposeNativeBridgeApi();
+    setupRemoteAudioElement();
+
+    document.addEventListener("ios-audio-unlocked", () => {
+      log("iOS audio unlocked event received.");
+      playRemoteAudio();
+    });
+
     showView("view-login");
     hideIncomingModal();
     refreshUi();
     checkDevMode();
     log("アプリを初期化しました。");
+    log(`WebRTC環境: isSecureContext=${window.isSecureContext}, mediaDevices=${Boolean(navigator.mediaDevices)}, getUserMedia=${Boolean(navigator.mediaDevices?.getUserMedia)}`);
 
     if (window.AndroidPhone && typeof window.AndroidPhone.notifyReady === "function") {
       window.AndroidPhone.notifyReady();
