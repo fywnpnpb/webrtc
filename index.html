@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebRTC SIP Phone</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="global-status" class="global-status">
+    現在の状態: <span id="regState">未登録</span>
+  </div>
+
+  <main class="app">
+    <header class="app-header">
+      <h1>WebRTC SIP 電話</h1>
+    </header>
+
+    <p id="alertMessage" class="alert" role="alert" hidden></p>
+
+    <section id="view-login" class="screen active">
+      <div class="panel auth-panel">
+        <h2>登録</h2>
+        <div class="form-grid">
+          <label>
+            WebSocket URL
+            <input id="wsUrl" autocomplete="off" placeholder="wss://example.com:443/webrtc/ws" />
+          </label>
+          <label>
+            SIP URI
+            <input id="sipUri" autocomplete="off" placeholder="sip:user@example.com" />
+          </label>
+          <label>
+            認証ユーザー
+            <input id="authUser" autocomplete="off" placeholder="user" />
+          </label>
+          <label>
+            パスワード
+            <input id="password" type="password" autocomplete="current-password" placeholder="SIP password" />
+          </label>
+        </div>
+        <div class="button-row login-actions">
+          <button id="btnLogin" type="button">登録</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-dialer" class="screen" style="display: none;">
+      <div class="phone-surface dialer-surface">
+        <div id="dialTargetArea" class="dial-display">
+          <label for="targetUri">発信先番号</label>
+          <div class="target-row">
+            <input id="targetUri" autocomplete="off" inputmode="tel" placeholder="1001 または sip:1001@example.com" />
+            <button id="backspaceButton" type="button" class="icon-button">削除</button>
+          </div>
+        </div>
+
+        <div class="dialpad primary-dialpad" aria-label="ダイヤルパッド">
+          <button class="digit" type="button" data-digit="1">1</button>
+          <button class="digit" type="button" data-digit="2">2</button>
+          <button class="digit" type="button" data-digit="3">3</button>
+          <button class="digit" type="button" data-digit="4">4</button>
+          <button class="digit" type="button" data-digit="5">5</button>
+          <button class="digit" type="button" data-digit="6">6</button>
+          <button class="digit" type="button" data-digit="7">7</button>
+          <button class="digit" type="button" data-digit="8">8</button>
+          <button class="digit" type="button" data-digit="9">9</button>
+          <button class="digit" type="button" data-digit="*">*</button>
+          <button class="digit" type="button" data-digit="0">0</button>
+          <button class="digit" type="button" data-digit="#">#</button>
+        </div>
+
+        <button id="clearButton" type="button" hidden>クリア</button>
+
+        <div class="dialer-actions">
+          <button id="btnLogout" type="button" class="logout-link">ログアウト</button>
+          <button id="callButton" type="button" class="call-button" disabled>発信</button>
+          <button id="btnHistory" type="button" class="history-button">通話履歴</button>
+        </div>
+
+        <ul id="callHistoryList" hidden></ul>
+      </div>
+    </section>
+
+    <section id="view-history" class="screen" style="display: none;">
+      <div class="phone-surface history-surface">
+        <header class="history-header">
+          <button id="btnBackHistory" type="button" class="history-nav-button">戻る</button>
+          <h2>通話履歴</h2>
+          <button id="btnClearHistory" type="button" class="history-clear-button">履歴を消去</button>
+        </header>
+        <ul id="history-list" class="history-list">
+          <li class="empty-history">履歴はありません</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="view-incall" class="screen" style="display: none;">
+      <div id="incallSurface" class="phone-surface incall-surface">
+        <header class="incall-header">
+          <p id="callStateText" class="incall-status">通話中</p>
+          <h2 id="remoteParty" class="incall-party">不明</h2>
+          <p id="callTimer" class="call-timer">00:00</p>
+        </header>
+
+        <div class="incall-actions">
+          <button id="btnMute" type="button" class="action-button action-btn" aria-pressed="false"><span>ミュート</span></button>
+          <button id="btnHold" type="button" class="action-button action-btn" aria-pressed="false"><span>保留</span></button>
+          <button id="btnTransfer" type="button" class="action-button action-btn" aria-pressed="false"><span>転送</span></button>
+          <button id="btnKeypad" type="button" class="action-button action-btn" aria-pressed="false"><span>キーパッド</span></button>
+        </div>
+
+        <div id="transferArea" class="transfer-area" hidden>
+          <label for="transferTarget">転送先内線</label>
+          <div class="target-row">
+            <input id="transferTarget" autocomplete="off" inputmode="tel" placeholder="転送先の内線番号" />
+            <button id="btnDoTransfer" type="button" class="transfer-submit">転送</button>
+          </div>
+        </div>
+
+        <div id="dtmf-display" class="dtmf-display" aria-live="polite"></div>
+
+        <div id="incallKeypad" class="dialpad incall-keypad" aria-label="DTMF キーパッド">
+          <button class="digit" type="button" data-digit="1">1</button>
+          <button class="digit" type="button" data-digit="2">2</button>
+          <button class="digit" type="button" data-digit="3">3</button>
+          <button class="digit" type="button" data-digit="4">4</button>
+          <button class="digit" type="button" data-digit="5">5</button>
+          <button class="digit" type="button" data-digit="6">6</button>
+          <button class="digit" type="button" data-digit="7">7</button>
+          <button class="digit" type="button" data-digit="8">8</button>
+          <button class="digit" type="button" data-digit="9">9</button>
+          <button class="digit" type="button" data-digit="*">*</button>
+          <button class="digit" type="button" data-digit="0">0</button>
+          <button class="digit" type="button" data-digit="#">#</button>
+        </div>
+
+        <div class="incall-keypad-actions">
+          <button id="btnHideKeypad" type="button" class="hide-keypad-button action-btn">キーパッドを隠す</button>
+          <button id="btnEndCall" type="button" class="end-call-button action-btn">切断</button>
+        </div>
+        <button id="hangupButton" type="button" hidden disabled>切断</button>
+      </div>
+    </section>
+
+    <div id="modal-incoming" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h3>着信</h3>
+        <p>発信元: <span id="incoming-number">不明</span></p>
+        <div class="button-row modal-actions">
+          <button id="btnAnswerModal" type="button" class="success">応答</button>
+          <button id="btnRejectModal" type="button" class="danger">拒否</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-logs" style="display: none;">
+      <div class="panel">
+        <h2>ログ</h2>
+        <pre id="logOutput" aria-live="polite"></pre>
+      </div>
+    </div>
+  </main>
+
+  <audio id="remoteAudio" autoplay playsinline></audio>
+
+  <script src="vendor/jssip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

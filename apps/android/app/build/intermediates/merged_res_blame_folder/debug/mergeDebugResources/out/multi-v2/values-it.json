@@ -1,0 +1,60 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.webrtcphone.app-mergeDebugResources-24:/values-it/values-it.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\k1123\\.gradle\\caches\\9.0.0\\transforms\\c3ee9e29110dc7e98bd9a6f8a6bd9ded\\transformed\\core-1.15.0\\res\\values-it\\values-it.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,153,255,354,456,565,672,802",
+                        "endColumns": "97,101,98,101,108,106,129,100",
+                        "endOffsets": "148,250,349,451,560,667,797,898"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,27",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,153,255,354,456,565,672,3025",
+                        "endColumns": "97,101,98,101,108,106,129,100",
+                        "endOffsets": "148,250,349,451,560,667,797,3121"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\k1123\\.gradle\\caches\\9.0.0\\transforms\\ab8a68b640628f52ef94a88094853930\\transformed\\play-services-basement-18.9.0\\res\\values-it\\values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "218",
+                        "endColumns": "131",
+                        "endOffsets": "349"
+                    },
+                    "to": {
+                        "startLines": "17",
+                        "startColumns": "4",
+                        "startOffsets": "1801",
+                        "endColumns": "135",
+                        "endOffsets": "1932"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\k1123\\.gradle\\caches\\9.0.0\\transforms\\d80c6574a70ad20a49810446fee5078a\\transformed\\play-services-base-18.9.0\\res\\values-it\\values.xml",
+                    "from": {
+                        "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
+                        "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
+                        "startOffsets": "216,317,464,585,689,843,967,1083,1183,1336,1439,1589,1712,1864,2041,2105,2162",
+                        "endColumns": "100,146,120,103,153,123,115,99,152,102,149,122,151,176,63,56,72",
+                        "endOffsets": "316,463,584,688,842,966,1082,1182,1335,1438,1588,1711,1863,2040,2104,2161,2234"
+                    },
+                    "to": {
+                        "startLines": "9,10,11,12,13,14,15,16,18,19,20,21,22,23,24,25,26",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "802,907,1058,1183,1291,1449,1577,1697,1937,2094,2201,2355,2482,2638,2819,2887,2948",
+                        "endColumns": "104,150,124,107,157,127,119,103,156,106,153,126,155,180,67,60,76",
+                        "endOffsets": "902,1053,1178,1286,1444,1572,1692,1796,2089,2196,2350,2477,2633,2814,2882,2943,3020"
+                    }
+                }
+            ]
+        }
+    ]
+}

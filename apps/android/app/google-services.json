@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "417500392601",
+    "project_id": "webrtc-8d54e",
+    "storage_bucket": "webrtc-8d54e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417500392601:android:ca907fb7710ad459f49c08",
+        "android_client_info": {
+          "package_name": "com.example.webrtcphone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAX8kxuC40azO1gqjDZZSf6aCmeMQgRN_U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
