@@ -1,0 +1,450 @@
+﻿<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="color-scheme" content="light dark" />
+  <title>WebRTC SIP Phone</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="global-status" class="global-status" hidden>
+    <span id="regState"></span>
+    <span id="regStateDetail" class="global-status-detail" hidden></span>
+  </div>
+
+  <main class="app">
+    <p id="alertMessage" class="alert" role="alert" hidden></p>
+
+    <section id="view-home" class="screen active">
+      <div class="phone-surface app-shell">
+        <header id="homeTopbar" class="app-topbar">
+          <div class="topbar-side topbar-left">
+            <button id="btnBackNav" type="button" class="nav-icon-button" hidden aria-label="戻る"></button>
+            <button id="btnAccountSettings" type="button" class="account-chip">
+              <span id="accountStatusDot" class="status-dot" aria-hidden="true"></span>
+              <span class="account-chip-copy">
+                <span id="accountChipText">SIP</span>
+                <small id="accountStatusText" class="account-status-text">未登録</small>
+              </span>
+            </button>
+          </div>
+
+          <h1 id="homeTitle" class="page-title">アカウント設定</h1>
+
+          <div class="topbar-side topbar-right">
+            <button id="btnQuickSettings" type="button" class="nav-icon-button" aria-label="メニュー"></button>
+            <div id="homeOverflowMenu" class="overflow-menu" role="menu" hidden>
+              <button id="btnMenuSettings" type="button" class="menu-item" role="menuitem" data-settings-route="menu">設定</button>
+              <button id="btnMenuShareLog" type="button" class="menu-item" role="menuitem" data-menu-action="share-log">ログ送信</button>
+              <button id="btnMenuClearHistory" type="button" class="menu-item menu-item-danger" role="menuitem" hidden>通話履歴を削除</button>
+              <button id="btnMenuLogout" type="button" class="menu-item menu-item-danger" role="menuitem" data-menu-action="logout">ログアウト</button>
+            </div>
+          </div>
+        </header>
+
+        <section id="panel-setup" class="home-panel" data-home-panel="setup" hidden>
+          <div class="page-stack">
+            <div class="settings-card setup-card">
+              <div class="setup-card-header">
+                <div id="setupSummary" class="setup-summary"></div>
+                <span id="setupPlatformBadge" class="pill soft">ブラウザ</span>
+              </div>
+              <div id="setupChecklist" class="setup-checklist"></div>
+              <div class="button-row setup-actions">
+                <button id="btnRefreshSetup" type="button" class="secondary-button">再確認</button>
+                <button id="btnProceedFromSetup" type="button" class="primary-button">アカウント設定へ</button>
+                <button id="btnSkipSetup" type="button" class="ghost-button">あとで</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-history" class="home-panel" data-home-panel="history" hidden>
+          <div class="page-stack">
+            <div class="segmented-control" role="tablist" aria-label="履歴フィルター">
+              <button id="historyFilterAll" type="button" class="segment active">すべて</button>
+              <button id="historyFilterMissed" type="button" class="segment">不在着信</button>
+              <button id="historyFilterOutgoing" type="button" class="segment">発信</button>
+              <button id="historyFilterIncoming" type="button" class="segment">着信</button>
+            </div>
+
+            <div class="settings-card compact-card">
+              <header class="list-toolbar">
+                <h3>通話履歴</h3>
+              </header>
+              <ul id="historyList" class="history-list">
+                <li class="empty-history">履歴はありません</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-dialer" class="home-panel" data-home-panel="dialer" hidden>
+          <div class="page-stack dialer-layout">
+            <div id="storeSelectArea" class="settings-card compact-card" hidden>
+              <label for="selectedStoreId">利用する店舗</label>
+              <select id="selectedStoreId" class="app-select"></select>
+            </div>
+
+            <div class="dialer-header-card">
+              <label class="dialer-input-wrap" for="targetUri">
+                <input id="targetUri" autocomplete="off" inputmode="tel" placeholder="番号を入力" aria-label="番号を入力" />
+              </label>
+              <button id="backspaceButton" type="button" class="circle-button subtle" aria-label="一文字削除、長押しですべて削除" title="長押しですべて削除"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7-5 5 5 5h10a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="m13 10 4 4m0-4-4 4"/></svg></button>
+            </div>
+
+            <div class="dialpad-card">
+              <div class="dialpad primary-dialpad" aria-label="キーパッド">
+                <button class="digit" type="button" data-digit="1">1</button>
+                <button class="digit" type="button" data-digit="2">2</button>
+                <button class="digit" type="button" data-digit="3">3</button>
+                <button class="digit" type="button" data-digit="4">4</button>
+                <button class="digit" type="button" data-digit="5">5</button>
+                <button class="digit" type="button" data-digit="6">6</button>
+                <button class="digit" type="button" data-digit="7">7</button>
+                <button class="digit" type="button" data-digit="8">8</button>
+                <button class="digit" type="button" data-digit="9">9</button>
+                <button class="digit" type="button" data-digit="*">*</button>
+                <button class="digit" type="button" data-digit="0">0</button>
+                <button class="digit" type="button" data-digit="#">#</button>
+              </div>
+              <div class="dialer-actions">
+                <button id="callButton" type="button" class="call-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.5 10 8l-2 2c1.4 2.8 3.6 5 6.4 6.4l2-2 4.5 2.8-.6 3.3c-.2.9-1 1.5-1.9 1.5C9.3 22 2 14.7 2 5.6c0-.9.6-1.7 1.5-1.9z"/></svg><span>発信</span></button>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="dialTargetArea" hidden></div>
+          <button id="btnShareDiagnostics" type="button" hidden>共有</button>
+          <button id="btnGoSettingsFromDialer" type="button" hidden>設定</button>
+        </section>
+
+        <section id="panel-contacts" class="home-panel" data-home-panel="contacts" hidden>
+          <div class="page-stack">
+            <div class="list-toolbar contacts-toolbar">
+              <div id="contactSearchShell" class="search-shell">
+                <input id="contactLookupInput" autocomplete="off" placeholder="連絡先を検索" aria-label="連絡先を検索" />
+              </div>
+              <button id="btnAddContact" type="button" class="circle-button primary" aria-label="連絡先を追加">
+                <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+              <button id="btnContactSort" type="button" class="circle-button subtle contact-sort-control" aria-label="連絡先を並び替え" aria-expanded="false">
+                <span class="contact-sort-icon" aria-hidden="true">
+                  <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+                </span>
+              </button>
+              <select id="contactSortMode" aria-label="連絡先の並び順" hidden>
+                <option value="name">名前順</option>
+                <option value="used">よく使う順</option>
+                <option value="updated">最近更新順</option>
+              </select>
+              <div id="contactSortMenu" class="overflow-menu contact-sort-menu" role="menu" hidden>
+                <button type="button" class="menu-item" role="menuitemradio" data-contact-sort-mode="name">名前順</button>
+                <button type="button" class="menu-item" role="menuitemradio" data-contact-sort-mode="used">よく使う順</button>
+                <button type="button" class="menu-item" role="menuitemradio" data-contact-sort-mode="updated">最近更新順</button>
+              </div>
+            </div>
+            <div id="contactLookupResult" class="helper-text" hidden></div>
+            <div id="contactsList" class="contact-list"></div>
+          </div>
+        </section>
+
+        <section id="panel-favorites" class="home-panel" data-home-panel="favorites" hidden>
+          <div class="page-stack">
+            <div class="settings-card compact-card">
+              <header class="list-toolbar">
+                <h3>お気に入り</h3>
+              </header>
+              <div id="favoritesList" class="contact-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-settings" class="home-panel" data-home-panel="settings" hidden>
+          <div id="accountSettingsCard" class="settings-card auth-card">
+            <div class="auth-header">
+              <div>
+                <p class="section-label">SIP アカウント</p>
+                <h3>アカウント設定</h3>
+              </div>
+              <span id="settingsConnectionPill" class="pill status-pill" hidden>未登録</span>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>WebSocket 接続先</span>
+                <input id="wsUrl" autocomplete="off" placeholder="wss://example.com:443/webrtc/ws" />
+              </label>
+
+              <label>
+                <span>SIP アドレス</span>
+                <input id="sipUri" autocomplete="off" placeholder="sip:user@example.com" />
+              </label>
+
+              <label>
+                <span>認証ユーザー</span>
+                <input id="authUser" autocomplete="off" placeholder="user" />
+              </label>
+
+              <label>
+                <span>パスワード</span>
+                <input id="password" type="password" autocomplete="current-password" placeholder="SIP パスワード" />
+              </label>
+
+              <label class="advanced-account-field">
+                <span>既定の発信方法</span>
+                <select id="defaultDialMethod" class="app-select">
+                  <option value="sip">SIP</option>
+                  <option value="mobile">端末発信</option>
+                  <option value="shop">店舗発信</option>
+                </select>
+              </label>
+
+              <label class="advanced-account-field stores-config-field">
+                <span>店舗設定 (JSON)</span>
+                <small>必要な場合のみ入力してください。</small>
+                <textarea id="storesJson" rows="4" spellcheck="false" placeholder='[{"id":"shop1","name":"店舗A","phoneNumber":"0312345678"}]'></textarea>
+              </label>
+            </div>
+
+            <div class="button-row login-actions">
+              <button id="btnLogin" type="button" class="primary-button">登録 / ログイン</button>
+              <button id="btnOpenSetupGuide" type="button" class="secondary-button first-run-link">初期設定を開く</button>
+              <button id="btnLogout" type="button" hidden>ログアウト</button>
+            </div>
+          </div>
+
+          <div id="settingsToolsCard" class="settings-card settings-page">
+            <div id="settingsRoot" class="settings-view">
+              <div class="settings-section">
+                <p class="section-label">アカウント</p>
+                <button type="button" class="settings-row" data-settings-route="account">
+                  <span>アカウント設定</span>
+                  <span>›</span>
+                </button>
+                <button type="button" class="settings-row" data-settings-action="logout">
+                  <span>ログアウト</span>
+                  <span>›</span>
+                </button>
+              </div>
+
+              <div class="settings-section">
+                <p class="section-label">通話</p>
+                <button type="button" class="settings-row" data-settings-route="calls">
+                  <span>通話設定</span>
+                  <span>›</span>
+                </button>
+              </div>
+
+              <div class="settings-section">
+                <p class="section-label">アプリ / 情報</p>
+                <button type="button" class="settings-row" data-settings-route="usage">
+                  <span>利用状況</span>
+                  <span>›</span>
+                </button>
+                <button type="button" class="settings-row" data-settings-route="about">
+                  <span>バージョン情報</span>
+                  <span>›</span>
+                </button>
+                <button type="button" class="settings-row" data-settings-route="detail">
+                  <span>詳細</span>
+                  <span>›</span>
+                </button>
+              </div>
+
+              <div class="settings-section">
+                <p class="section-label">環境</p>
+                <button type="button" class="settings-row" data-settings-route="environment">
+                  <span>権限と端末設定</span>
+                  <span>›</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="settingsSubpage" class="settings-view" hidden>
+              <div class="subpage-card">
+                <p id="settingsSubpageLabel" class="section-label"></p>
+                <div id="settingsSubpageContent"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <section id="view-incall" class="screen" style="display: none;">
+      <div id="incallSurface" class="phone-surface incall-surface">
+        <header class="incall-header">
+          <h2 id="remoteParty" class="incall-party">不明</h2>
+          <p id="remotePartySub" class="incall-party-sub"></p>
+          <div class="incall-state-row">
+            <span id="callStateText" class="incall-status">待機中</span>
+            <span id="callTimer" class="call-timer">00:00</span>
+          </div>
+        </header>
+
+        <div class="incall-actions">
+          <button id="btnMute" type="button" class="action-button action-btn" aria-pressed="false"><span class="control-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 12 4.9M12 18v3M9 21h6M3 3l18 18"/></svg></span><span>ミュート</span></button>
+          <button id="btnHold" type="button" class="action-button action-btn" aria-pressed="false"><span class="control-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></span><span>保留</span></button>
+          <button id="btnSpeaker" type="button" class="action-button action-btn" aria-pressed="false"><span class="control-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h4l5-4v14l-5-4H5zM17 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></span><span>スピーカー</span></button>
+          <button id="btnTransfer" type="button" class="action-button action-btn" aria-pressed="false"><span class="control-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13M14 5l3 3-3 3M20 16H7M10 13l-3 3 3 3"/></svg></span><span>転送</span></button>
+          <button id="btnKeypad" type="button" class="action-button action-btn" aria-pressed="false"><span class="control-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="18" cy="6" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/><circle cx="6" cy="18" r="1"/><circle cx="12" cy="18" r="1"/><circle cx="18" cy="18" r="1"/></svg></span><span>キーパッド</span></button>
+        </div>
+
+        <div id="transferArea" class="transfer-area" hidden>
+          <label for="transferTarget">転送先</label>
+          <div class="target-row">
+            <input id="transferTarget" autocomplete="off" inputmode="tel" placeholder="転送先の番号" />
+            <button id="btnDoTransfer" type="button" class="transfer-submit">転送</button>
+          </div>
+        </div>
+
+        <div id="dtmfDisplay" class="dtmf-display" aria-live="polite"></div>
+
+        <div id="incallKeypadScreen" class="incall-keypad-screen">
+          <header class="keypad-screen-header">
+            <button id="btnHideKeypad" type="button" class="nav-icon-button" aria-label="通話画面に戻る"></button>
+            <div>
+              <p class="section-label">DTMF</p>
+              <h3>キーパッド</h3>
+            </div>
+          </header>
+          <div id="incallKeypad" class="dialpad incall-keypad" aria-label="DTMF キーパッド">
+            <button class="digit" type="button" data-digit="1">1</button>
+            <button class="digit" type="button" data-digit="2">2</button>
+            <button class="digit" type="button" data-digit="3">3</button>
+            <button class="digit" type="button" data-digit="4">4</button>
+            <button class="digit" type="button" data-digit="5">5</button>
+            <button class="digit" type="button" data-digit="6">6</button>
+            <button class="digit" type="button" data-digit="7">7</button>
+            <button class="digit" type="button" data-digit="8">8</button>
+            <button class="digit" type="button" data-digit="9">9</button>
+            <button class="digit" type="button" data-digit="*">*</button>
+            <button class="digit" type="button" data-digit="0">0</button>
+            <button class="digit" type="button" data-digit="#">#</button>
+          </div>
+        </div>
+
+        <button id="btnEndCall" type="button" class="end-call-button action-btn"><span class="control-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15c4.7-3 9.3-3 14 0l-2 4-4-2v-2h-2v2l-4 2z"/></svg></span><span>通話終了</span></button>
+        <button id="hangupButton" type="button" hidden disabled>通話終了</button>
+      </div>
+    </section>
+
+    <div id="incomingModal" class="modal" style="display: none;">
+      <div class="modal-content incoming-call-card">
+        <p class="incoming-eyebrow">着信中</p>
+        <div class="incoming-avatar" aria-hidden="true"></div>
+        <h3 id="incomingNumber">不明</h3>
+        <p class="incoming-caption">WebRTC オーディオ通話</p>
+        <div class="button-row modal-actions">
+          <button id="btnRejectModal" type="button" class="danger"><span class="incoming-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15c4.7-3 9.3-3 14 0l-2 4-4-2v-2h-2v2l-4 2z"/></svg></span><span>拒否</span></button>
+          <button id="btnAnswerModal" type="button" class="success"><span class="incoming-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.5 10 8l-2 2c1.4 2.8 3.6 5 6.4 6.4l2-2 4.5 2.8-.6 3.3c-.2.9-1 1.5-1.9 1.5C9.3 22 2 14.7 2 5.6c0-.9.6-1.7 1.5-1.9z"/></svg></span><span>応答</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="contactOverlay" class="sheet-overlay" hidden>
+      <div class="sheet-surface">
+        <header class="sheet-header">
+          <button id="btnCloseContactOverlay" type="button" class="nav-icon-button" aria-label="戻る"></button>
+          <h3 id="contactOverlayTitle">連絡先</h3>
+          <button id="btnSaveContact" type="button" class="text-action-button" hidden>保存</button>
+        </header>
+
+        <div id="contactDetailView" class="sheet-body">
+          <div class="detail-hero">
+            <div id="contactAvatar" class="contact-avatar">A</div>
+            <h3 id="contactDetailName">名前</h3>
+            <p id="contactDetailTarget">番号</p>
+          </div>
+          <div id="contactPhoneChoices" class="contact-phone-choices" hidden></div>
+          <div class="button-row action-grid">
+            <button id="btnCallContact" type="button" class="primary-button">☎ 発信</button>
+            <button id="btnToggleFavorite" type="button" class="secondary-button">☆ お気に入り</button>
+            <button id="btnEditContact" type="button" class="secondary-button">端末の連絡帳で編集</button>
+            <button id="btnDeleteContact" type="button" class="ghost-button">端末の連絡帳で削除</button>
+          </div>
+          <div class="settings-section compact-section">
+            <div class="detail-row"><span>名前</span><strong id="contactInfoName">-</strong></div>
+            <div class="detail-row"><span>番号 / SIP</span><strong id="contactInfoTarget">-</strong></div>
+            <div class="detail-row"><span>メモ</span><strong id="contactInfoNote">-</strong></div>
+          </div>
+        </div>
+
+        <div id="historyDetailView" class="sheet-body" hidden></div>
+
+        <form id="contactEditorView" class="sheet-body editor-form" hidden>
+          <div class="contact-avatar-editor">
+            <div id="contactAvatarPreview" class="contact-avatar contact-avatar-preview default-avatar" aria-hidden="true"></div>
+            <label>
+              写真
+              <input id="contactAvatarInput" type="file" accept="image/*" />
+            </label>
+          </div>
+          <label>
+            名前
+            <input id="contactNameInput" autocomplete="off" placeholder="例: 山田 太郎" />
+          </label>
+          <label>
+            電話番号
+            <input id="contactPhoneInput" autocomplete="off" inputmode="tel" placeholder="09012345678" />
+          </label>
+          <label>
+            SIP
+            <input id="contactSipInput" autocomplete="off" placeholder="sip:1001@example.com" />
+          </label>
+          <label>
+            発信先
+            <input id="contactTargetInput" autocomplete="off" placeholder="電話番号またはSIP" />
+          </label>
+          <label>
+            メモ
+            <textarea id="contactNoteInput" rows="4" placeholder="補足メモ"></textarea>
+          </label>
+          <label class="toggle-row">
+            <span>お気に入りに追加</span>
+            <input id="contactFavoriteInput" type="checkbox" />
+          </label>
+        </form>
+      </div>
+    </div>
+
+    <div id="view-logs" style="display: none;">
+      <div class="settings-card">
+        <h2>ログ</h2>
+        <pre id="logOutput" aria-live="polite"></pre>
+      </div>
+    </div>
+
+    <nav id="homeTabbar" class="floating-tabbar home-tabbar" role="tablist" aria-label="メインタブ">
+      <button id="tabHistory" type="button" class="floating-tab" data-home-tab="history" role="tab" aria-selected="false">
+        <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></span>
+        <span class="tab-label">履歴</span>
+      </button>
+      <button id="tabDialer" type="button" class="floating-tab" data-home-tab="dialer" role="tab" aria-selected="false">
+        <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="18" cy="5" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/><circle cx="6" cy="19" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="18" cy="19" r="1"/></svg></span>
+        <span class="tab-label">キーパッド</span>
+      </button>
+      <button id="tabFavorites" type="button" class="floating-tab" data-home-tab="favorites" role="tab" aria-selected="false">
+        <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg></span>
+        <span class="tab-label">お気に入り</span>
+      </button>
+      <button id="tabContacts" type="button" class="floating-tab" data-home-tab="contacts" role="tab" aria-selected="false">
+        <span class="tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.5-4 2.3-6 5.5-6s5 2 5.5 6M16 8h5M16 12h5M17 16h4"/></svg></span>
+        <span class="tab-label">連絡先</span>
+      </button>
+    </nav>
+  </main>
+
+  <audio id="remoteAudio" autoplay playsinline webkit-playsinline></audio>
+
+  <script src="vendor/jssip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

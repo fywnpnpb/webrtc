@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>WebRTC Test E Provisioning</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#172033;font-family:system-ui,"Noto Sans JP",sans-serif}main{max-width:1050px;margin:auto;padding:32px 18px}header{margin-bottom:24px}h1{margin:0 0 8px}.config,.card{background:#fff;border:1px solid #dce1e9;border-radius:14px;padding:18px}.config{margin-bottom:18px}.config label{display:grid;gap:8px;font-weight:700}.config input{width:100%;padding:12px;border:1px solid #aeb7c5;border-radius:8px;font:inherit}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card h2{margin-top:0}.details{min-height:105px;font-family:ui-monospace,monospace;font-size:13px;overflow-wrap:anywhere}.button{display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px;border-radius:8px;background:#1769d2;color:#fff;text-decoration:none;text-align:center;font-weight:700}.button[aria-disabled=true]{opacity:.45;cursor:not-allowed}.state{margin-top:12px;min-height:42px}.ok{color:#087443}.error{color:#b42318}.pending{color:#7950d0}.links{margin-top:20px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <header><h1>WebRTC Test E Provisioning</h1><p>PC 上の Test API と同じ設定で Android 端末 A/B/C を構成します。</p></header>
+  <section class="config">
+    <label>Test Agent Server URL<input id="baseUrl" type="url" inputmode="url" placeholder="http://192.168.1.10:3200"></label>
+    <p>Android 実機から到達できる PC の LAN IP を指定してください。localhost / 127.0.0.1 は使用できません。</p>
+    <p id="baseStatus" aria-live="polite"></p>
+  </section>
+  <section id="devices" class="grid" aria-label="Test E devices"></section>
+  <p class="links"><a href="/dashboard.html">Test E Dashboard を開く</a></p>
+<script type="module">
+const $=id=>document.getElementById(id);const storageKey="webrtc-test-e.agent-base-url";let config;
+async function api(path){const response=await fetch(path,{cache:"no-store"});const body=await response.json();if(!response.ok)throw new Error(body.message||`HTTP ${response.status}`);return body}
+function normalize(value){try{const url=new URL(String(value||"").trim().replace(/\/$/,""));if(!["http:","https:"].includes(url.protocol))return null;if(["localhost","127.0.0.1"].includes(url.hostname))return null;return url.toString().replace(/\/$/,"")}catch{return null}}
+function initialBaseUrl(){const saved=localStorage.getItem(storageKey);if(saved)return saved;if(location.hostname&&!['localhost','127.0.0.1'].includes(location.hostname))return location.origin;return ''}
+function deepLink(slot,device,baseUrl){const params=new URLSearchParams({wsUrl:config.sip.wsUrl,sipUri:`sip:${device.authUser}@${config.sip.domain}`,authUser:device.authUser,password:config.sip.password,storeName:`Test E ${slot}`,ctiName:"Test E",autoRegister:"1",testAgent:"1",deviceId:device.deviceId,testAgentBaseUrl:baseUrl});return `webrtcphone://provision?${params}`}
+function render(){const baseUrl=normalize($("baseUrl").value);$("baseStatus").className=baseUrl?'ok':$("baseUrl").value?'error':'';$("baseStatus").textContent=baseUrl?`使用する Test Agent: ${baseUrl}`:'PC の LAN IP を含む有効な URL を入力してください。';if(baseUrl)localStorage.setItem(storageKey,baseUrl);$("devices").innerHTML=Object.entries(config.devices).map(([slot,device])=>`<article class="card" data-device="${device.deviceId}"><h2>端末 ${slot} · ${device.deviceId}</h2><div class="details">SIP: sip:${device.authUser}@${config.sip.domain}<br>WebSocket: ${config.sip.wsUrl}<br>Device ID: ${device.deviceId}</div><a class="button" aria-disabled="${baseUrl?'false':'true'}" ${baseUrl?`href="${deepLink(slot,device,baseUrl)}"`:''}>${slot} を App に設定</a><p class="state" data-state>状態確認中…</p></article>`).join('')}
+async function refreshStatus(){if(!config)return;const ids=Object.values(config.devices).map(device=>device.deviceId);try{const result=await api(`/devices?ids=${ids.join(',')}`);for(const device of result.devices){const node=document.querySelector(`[data-device="${device.deviceId}"] [data-state]`);if(!node)continue;node.className=`state ${device.ok?'ok':device.online?'pending':'error'}`;node.textContent=device.ok?'設定成功: Test Agent online / SIP registered':device.online?`Test Agent online / SIP ${device.registrationState||'未登録'}`:'Test Agent offline';}}catch(error){document.querySelectorAll('[data-state]').forEach(node=>{node.className='state error';node.textContent=`状態取得失敗: ${error.message}`})}}
+try{config=await api('/config');$("baseUrl").value=initialBaseUrl();render();await refreshStatus();setInterval(refreshStatus,3000)}catch(error){$("baseStatus").className='error';$("baseStatus").textContent=`設定読込失敗: ${error.message}`}
+$("baseUrl").addEventListener('input',render);$("devices").addEventListener('click',event=>{const link=event.target.closest('a.button');if(!link)return;if(link.getAttribute('aria-disabled')==='true'){event.preventDefault();$("baseUrl").focus();return}const state=link.closest('.card').querySelector('[data-state]');state.className='state pending';state.textContent='App を開きました。Test Agent の接続を待っています…'});
+</script>
+</main></body></html>

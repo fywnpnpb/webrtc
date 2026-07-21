@@ -1,0 +1,54 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 3200
+  },
+  "sip": {
+    "wsUrl": "wss://example.invalid/webrtc/ws",
+    "domain": "example.invalid",
+    "password": ""
+  },
+  "devices": {
+    "A": {
+      "deviceId": "101",
+      "authUser": "example_101"
+    },
+    "B": {
+      "deviceId": "102",
+      "authUser": "example_102"
+    },
+    "C": {
+      "deviceId": "103",
+      "authUser": "example_103"
+    }
+  },
+  "external": {
+    "inboundPhone": "05000000000",
+    "outboundPhone": "05000000000",
+    "calltestBaseUrl": "http://example.invalid/ajax/calltest/test"
+  },
+  "timings": {
+    "connectedSec": 18,
+    "answerAfterSec": 2,
+    "transferAfterSec": 5,
+    "secondTransferAfterSec": 5,
+    "beforeAnswerHangupSec": 1,
+    "beforeTransferAnswerHangupSec": 2,
+    "settleSec": 8,
+    "incomingTimeoutSec": 90,
+    "toleranceSec": 8,
+    "commandTimeoutSec": {
+      "register": 30,
+      "unregister": 30,
+      "call": 30,
+      "answer": 20,
+      "hangup": 20,
+      "reject": 20,
+      "hold": 20,
+      "resume": 20,
+      "transfer": 30,
+      "dtmf": 20,
+      "default": 20
+    }
+  }
+}

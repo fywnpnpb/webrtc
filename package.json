@@ -1,0 +1,16 @@
+{
+  "name": "webrtc-phone",
+  "private": true,
+  "scripts": {
+    "build:android-js": "esbuild app.js --target=es2019 --outfile=app.android.js",
+    "start:test-api": "node tools/test-e/server/cli.mjs",
+    "provisioning": "node tools/test-e/server/cli.mjs --open-provisioning",
+    "test:e": "node tools/test-e/runner/cli.mjs",
+    "test:e:list": "node tools/test-e/runner/cli.mjs --list",
+    "test:e:smoke": "node tools/test-e/runner/cli.mjs --smoke",
+    "test:test-e": "node --test tools/test-e/tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.14.14"
+  }
+}

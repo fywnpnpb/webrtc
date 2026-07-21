@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WebRTC Test E Dashboard</title>
+  <style>
+    body{margin:0;background:#f4f6f9;color:#172033;font-family:system-ui,sans-serif}main{max-width:1050px;margin:auto;padding:28px 18px}h1{margin:0 0 8px}.links{margin-bottom:20px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.card,section{background:#fff;border:1px solid #dce1e9;border-radius:12px;padding:16px}.ok{color:#087443}.ng{color:#b42318}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}button,input{padding:9px;border:1px solid #aeb7c5;border-radius:7px}button{cursor:pointer}.wide{margin-top:16px}pre{max-height:360px;overflow:auto;background:#101828;color:#e4e7ec;padding:12px;border-radius:8px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <h1>WebRTC Test E</h1>
+  <p class="links"><a href="/provisioning.html">Provisioning</a> · API <code id="apiUrl"></code></p>
+  <div id="devices" class="grid"></div>
+  <section class="wide">
+    <h2>手動命令</h2>
+    <div class="actions"><input id="from" placeholder="発信元 deviceId"><input id="to" placeholder="発信先"><button id="call">Call</button><button id="refresh">更新</button></div>
+    <p id="message"></p><pre id="commands"></pre>
+  </section>
+  <section class="wide"><h2>最近のイベント</h2><pre id="events"></pre></section>
+<script type="module">
+const $=id=>document.getElementById(id); let config;
+async function api(path,options={}){const response=await fetch(path,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const body=await response.json();if(!response.ok)throw new Error(body.message||`HTTP ${response.status}`);return body}
+async function send(deviceId,type,extra={}){const result=await api("/commands",{method:"POST",body:JSON.stringify({deviceId,type,...extra})});$("message").textContent=`${type}: ${result.command.commandId}`;await refresh()}
+async function refresh(){const ids=Object.values(config.devices).map(device=>device.deviceId);const [deviceResult,commandResult,eventResult]=await Promise.all([api(`/devices?ids=${ids.join(",")}`),api("/commands"),api("/events")]);$("devices").innerHTML=deviceResult.devices.map(device=>`<article class="card"><h2>${device.deviceId} <small>${device.expectedSipUser}</small></h2><strong class="${device.ok?"ok":"ng"}">${device.ok?"ONLINE / REGISTERED":device.online?"ONLINE":"OFFLINE"}</strong><p>最終 heartbeat: ${device.latestHeartbeatAt||"-"}<br>SIP 登録: ${device.registrationState||"-"}<br>通話状態: ${device.callState||"-"}<br>SIP: ${device.sipUri||"-"}<br>commandId: ${device.currentCommandId||"-"}<br>command: ${device.currentCommandType||"-"}<br>status: ${device.currentCommandStatus||"-"}<br>最新 callId: ${device.latestCallId||"-"}<br>最新エラー: <span class="${device.latestError?"ng":""}">${device.latestError||"-"}</span></p><div class="actions"><button data-device="${device.deviceId}" data-command="register">Register</button><button data-device="${device.deviceId}" data-command="unregister">Unregister</button><button data-device="${device.deviceId}" data-command="answer">Answer</button><button data-device="${device.deviceId}" data-command="hangup">Hangup</button></div></article>`).join("");$("commands").textContent=JSON.stringify(commandResult.commands.slice(-20),null,2);$("events").textContent=JSON.stringify(eventResult.events.slice(-30),null,2)}
+config=await api("/config");$("apiUrl").textContent=location.origin;$("from").value=config.devices.A.deviceId;$("to").value=config.devices.B.deviceId;$("devices").addEventListener("click",event=>{const button=event.target.closest("button[data-command]");if(button)send(button.dataset.device,button.dataset.command).catch(error=>$("message").textContent=error.message)});$("call").onclick=()=>send($("from").value,"call",{to:$("to").value}).catch(error=>$("message").textContent=error.message);$("refresh").onclick=refresh;await refresh();setInterval(refresh,3000);
+</script>
+</main></body></html>

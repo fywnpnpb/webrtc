@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>WebRTC Provisioning Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+      color: #172033;
+      background: #f4f6f9;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      min-height: 100%;
+      background: #f4f6f9;
+    }
+
+    body { margin: 0; }
+
+    main {
+      width: calc(100% - 32px);
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    header { margin-bottom: 28px; }
+
+    h1 {
+      margin: 0 0 10px;
+      overflow-wrap: anywhere;
+      font-size: 42px;
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      margin: 0;
+      color: #5b6475;
+      font-size: 16px;
+    }
+
+    .accounts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .account-card {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 22px;
+      border: 1px solid #dce1e9;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgb(24 39 75 / 6%);
+    }
+
+    .account-card h2 {
+      margin: 0 0 18px;
+      font-size: 23px;
+      line-height: 1.25;
+    }
+
+    .details {
+      display: grid;
+      gap: 10px;
+      margin: 0 0 22px;
+    }
+
+    .detail { min-width: 0; }
+
+    .detail dt {
+      margin-bottom: 2px;
+      color: #6c7484;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .detail dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .button {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 14px;
+      border: 1px solid #1557c0;
+      border-radius: 9px;
+      color: #fff;
+      background: #1769d2;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+      text-align: center;
+      text-decoration: none;
+      touch-action: manipulation;
+    }
+
+    .button:hover { background: #1256b3; }
+
+    .button:focus-visible {
+      outline: 3px solid #a9cbff;
+      outline-offset: 2px;
+    }
+
+    .button.path {
+      border-color: #536173;
+      background: #64748b;
+    }
+
+    .button.path:hover { background: #526176; }
+
+    .button.specified {
+      border-color: #147a56;
+      background: #16865e;
+    }
+
+    .button.specified:hover { background: #116e4d; }
+
+    .test-e-section {
+      margin-top: 36px;
+      padding-top: 32px;
+      border-top: 1px solid #dce1e9;
+    }
+
+    .test-e-section h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .test-e-description,
+    .test-e-note,
+    .test-e-status {
+      color: #5b6475;
+      line-height: 1.6;
+    }
+
+    .test-e-config {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #dce1e9;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .test-e-config label {
+      display: grid;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .test-e-config input {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid #aeb7c5;
+      border-radius: 9px;
+      font: inherit;
+    }
+
+    .test-e-config input:focus {
+      border-color: #1769d2;
+      outline: 3px solid #cfe1ff;
+    }
+
+    .test-e-status {
+      min-height: 24px;
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+
+    .test-e-status.error { color: #b42318; }
+
+    .test-e-accounts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .test-e-button {
+      border-color: #7047c8;
+      background: #7950d0;
+    }
+
+    .test-e-button:hover { background: #6540b6; }
+
+    .button[aria-disabled="true"] {
+      cursor: not-allowed;
+      opacity: .48;
+    }
+
+    @media (max-width: 880px) {
+      .accounts { grid-template-columns: 1fr; }
+      .test-e-accounts { grid-template-columns: 1fr; }
+      .account-card { padding: 20px; }
+    }
+
+    @media (max-width: 480px) {
+      main {
+        width: calc(100% - 24px);
+        padding-top: 28px;
+      }
+
+      h1 { font-size: 28px; }
+
+      .button { min-height: 52px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>WebRTC Provisioning Test</h1>
+      <p>Android 端末または Emulator で対象アカウントのボタンをタップしてください。</p>
+    </header>
+
+    <section class="test-e-config" aria-label="SIP 認証設定">
+      <label>
+        SIP Password
+        <input
+          id="sipPassword"
+          type="password"
+          autocomplete="off"
+          placeholder="実行時に入力"
+        >
+      </label>
+      <p class="test-e-note">パスワードはソースコードやブラウザの保存領域には保存されません。</p>
+    </section>
+
+    <section class="accounts" aria-label="WebRTC テストアカウント">
+      <article class="account-card">
+        <h2>webrtc_101</h2>
+        <dl class="details">
+          <div class="detail"><dt>SIP URI</dt><dd>sip:webrtc_101@test202606.mimio.jp</dd></div>
+          <div class="detail"><dt>WebSocket URL</dt><dd>wss://test202606.mimio.jp/webrtc/ws</dd></div>
+          <div class="detail"><dt>050番号</dt><dd>05058101566</dd></div>
+          <div class="detail"><dt>AGI端末ID</dt><dd>1001</dd></div>
+        </dl>
+        <div class="actions">
+          <a class="button provision-link" data-account="webrtc_101" data-device-id="1001" data-mode="device" aria-disabled="true">AGIテスト端末 1001 として設定</a>
+          <a class="button path provision-link" data-account="webrtc_101" data-mode="path" aria-disabled="true">webrtc_101 をパス形式で設定</a>
+          <a class="button specified provision-link" data-account="webrtc_101" data-mode="specified" aria-disabled="true">webrtc_101 を指定形式で設定</a>
+        </div>
+      </article>
+
+      <article class="account-card">
+        <h2>webrtc_102</h2>
+        <dl class="details">
+          <div class="detail"><dt>SIP URI</dt><dd>sip:webrtc_102@test202606.mimio.jp</dd></div>
+          <div class="detail"><dt>WebSocket URL</dt><dd>wss://test202606.mimio.jp/webrtc/ws</dd></div>
+          <div class="detail"><dt>050番号</dt><dd>05058101566</dd></div>
+          <div class="detail"><dt>AGI端末ID</dt><dd>1002</dd></div>
+        </dl>
+        <div class="actions">
+          <a class="button provision-link" data-account="webrtc_102" data-device-id="1002" data-mode="device" aria-disabled="true">AGIテスト端末 1002 として設定</a>
+          <a class="button path provision-link" data-account="webrtc_102" data-mode="path" aria-disabled="true">webrtc_102 をパス形式で設定</a>
+          <a class="button specified provision-link" data-account="webrtc_102" data-mode="specified" aria-disabled="true">webrtc_102 を指定形式で設定</a>
+        </div>
+      </article>
+
+      <article class="account-card">
+        <h2>webrtc_103</h2>
+        <dl class="details">
+          <div class="detail"><dt>SIP URI</dt><dd>sip:webrtc_103@test202606.mimio.jp</dd></div>
+          <div class="detail"><dt>WebSocket URL</dt><dd>wss://test202606.mimio.jp/webrtc/ws</dd></div>
+          <div class="detail"><dt>050番号</dt><dd>05058101566</dd></div>
+          <div class="detail"><dt>AGI端末ID</dt><dd>1003</dd></div>
+        </dl>
+        <div class="actions">
+          <a class="button provision-link" data-account="webrtc_103" data-device-id="1003" data-mode="device" aria-disabled="true">AGIテスト端末 1003 として設定</a>
+          <a class="button path provision-link" data-account="webrtc_103" data-mode="path" aria-disabled="true">webrtc_103 をパス形式で設定</a>
+          <a class="button specified provision-link" data-account="webrtc_103" data-mode="specified" aria-disabled="true">webrtc_103 を指定形式で設定</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="test-e-section" aria-labelledby="test-e-title">
+      <h2 id="test-e-title">Test E Provisioning</h2>
+      <p class="test-e-description">
+        api-test-tool を起動している PC の LAN IP を入力し、Android 端末ごとに A / B / C のボタンをタップしてください。
+      </p>
+
+      <div class="test-e-config">
+        <label>
+          Test Agent Base URL
+          <input
+            id="testAgentBaseUrl"
+            type="url"
+            inputmode="url"
+            autocomplete="url"
+            placeholder="http://192.168.1.10:3200"
+          >
+        </label>
+        <p class="test-e-note">
+          Android 実機では localhost / 127.0.0.1 を使用できません。PC の LAN IP と port 3200 を指定してください。
+          PC 上の Test E runner は <code>IVR_E_WEB_API_BASE=http://127.0.0.1:3200</code> のままで構いません。
+        </p>
+        <p id="testAgentBaseUrlStatus" class="test-e-status" aria-live="polite"></p>
+      </div>
+
+      <div class="test-e-accounts">
+        <a class="button test-e-button" data-test-e-device="101" data-test-e-account="webrtc_101" aria-disabled="true">Test E 端末A（101 / webrtc_101）を設定</a>
+        <a class="button test-e-button" data-test-e-device="102" data-test-e-account="webrtc_102" aria-disabled="true">Test E 端末B（102 / webrtc_102）を設定</a>
+        <a class="button test-e-button" data-test-e-device="103" data-test-e-account="webrtc_103" aria-disabled="true">Test E 端末C（103 / webrtc_103）を設定</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const storageKey = "webrtc-provisioning.test-agent-base-url";
+      const wsUrl = "wss://test202606.mimio.jp/webrtc/ws";
+      const domain = "test202606.mimio.jp";
+      const sipPasswordInput = document.getElementById("sipPassword");
+      const provisionLinks = Array.from(document.querySelectorAll(".provision-link"));
+      const input = document.getElementById("testAgentBaseUrl");
+      const status = document.getElementById("testAgentBaseUrlStatus");
+      const buttons = Array.from(document.querySelectorAll("[data-test-e-device]"));
+
+      function getInitialBaseUrl() {
+        try {
+          const saved = window.localStorage.getItem(storageKey);
+          if (saved) return saved;
+        } catch (_error) {
+          // Continue without persistence when localStorage is unavailable.
+        }
+
+        if (/^https?:$/.test(window.location.protocol)
+            && window.location.hostname
+            && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+          return `http://${window.location.hostname}:3200`;
+        }
+        return "";
+      }
+
+      function normalizeBaseUrl(value) {
+        const raw = String(value || "").trim().replace(/\/$/, "");
+        if (!raw) return null;
+        try {
+          const parsed = new URL(raw);
+          if (!["http:", "https:"].includes(parsed.protocol)) return null;
+          if (["localhost", "127.0.0.1"].includes(parsed.hostname)) return null;
+          return parsed.toString().replace(/\/$/, "");
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function updateProvisionLinks() {
+        const password = sipPasswordInput.value;
+        provisionLinks.forEach((link) => {
+          if (!password) {
+            link.removeAttribute("href");
+            link.setAttribute("aria-disabled", "true");
+            return;
+          }
+
+          const account = link.dataset.account;
+          if (link.dataset.mode === "path") {
+            link.href = `webrtcphone://provision/${encodeURIComponent(`${account}@${domain}`)}/${encodeURIComponent(password)}?wsUrl=${encodeURIComponent(wsUrl)}`;
+          } else {
+            const params = new URLSearchParams({
+              wsUrl,
+              sipUri: `sip:${account}@${domain}`,
+              authUser: account,
+              password,
+              autoRegister: "1",
+            });
+            if (link.dataset.mode === "device") params.set("deviceId", link.dataset.deviceId);
+            if (link.dataset.mode === "specified") {
+              params.set("storeName", "テスト店舗");
+              params.set("ctiName", "テストCTI");
+            }
+            link.href = `webrtcphone://provision?${params.toString()}`;
+          }
+          link.setAttribute("aria-disabled", "false");
+        });
+      }
+
+      function updateTestELinks() {
+        const baseUrl = normalizeBaseUrl(input.value);
+        const password = sipPasswordInput.value;
+        buttons.forEach((button) => {
+          if (!baseUrl || !password) {
+            button.removeAttribute("href");
+            button.setAttribute("aria-disabled", "true");
+            return;
+          }
+
+          const deviceId = button.dataset.testEDevice;
+          const account = button.dataset.testEAccount;
+          const params = new URLSearchParams({
+            wsUrl,
+            sipUri: `sip:${account}@${domain}`,
+            authUser: account,
+            password,
+            storeName: `Test E ${deviceId}`,
+            ctiName: "Test E",
+            autoRegister: "1",
+            testAgent: "1",
+            deviceId,
+            testAgentBaseUrl: baseUrl,
+          });
+          button.href = `webrtcphone://provision?${params.toString()}`;
+          button.setAttribute("aria-disabled", "false");
+        });
+
+        status.classList.toggle("error", !baseUrl && Boolean(input.value.trim()));
+        status.textContent = !password
+          ? "SIP Password を入力すると設定ボタンが有効になります。"
+          : baseUrl
+          ? `使用する Test Agent: ${baseUrl}`
+          : input.value.trim()
+            ? "PC の LAN IP を含む http://...:3200 を入力してください。"
+            : "Test Agent Base URL を入力すると A / B / C ボタンが有効になります。";
+
+        if (baseUrl) {
+          try {
+            window.localStorage.setItem(storageKey, baseUrl);
+          } catch (_error) {
+            // The links still work even when persistence is unavailable.
+          }
+        }
+      }
+
+      [...provisionLinks, ...buttons].forEach((button) => {
+        button.addEventListener("click", (event) => {
+          if (button.getAttribute("aria-disabled") === "true") {
+            event.preventDefault();
+            (sipPasswordInput.value ? input : sipPasswordInput).focus();
+          }
+        });
+      });
+      input.value = getInitialBaseUrl();
+      input.addEventListener("input", updateTestELinks);
+      input.addEventListener("change", updateTestELinks);
+      sipPasswordInput.addEventListener("input", () => {
+        updateProvisionLinks();
+        updateTestELinks();
+      });
+      updateProvisionLinks();
+      updateTestELinks();
+    })();
+  </script>
+</body>
+</html>
